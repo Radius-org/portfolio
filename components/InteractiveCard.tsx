@@ -19,6 +19,28 @@ import {
 import { MeshLineGeometry, MeshLineMaterial } from "meshline";
 import type { RapierRigidBody } from "@react-three/rapier";
 
+// Add TypeScript support for meshline custom elements
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      meshLineGeometry: React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        attach?: string;
+        points?: any;
+      };
+      meshLineMaterial: React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        attach?: string;
+        color?: string;
+        depthTest?: boolean;
+        resolution?: [number, number];
+        useMap?: boolean;
+        map?: any;
+        repeat?: [number, number];
+        lineWidth?: number;
+      };
+    }
+  }
+}
+
 const Models = { title: 'Hammer', url: '/models/tag.glb' , logo:'/logo.png' }
 
 extend({ MeshLineGeometry, MeshLineMaterial });
@@ -79,20 +101,20 @@ export default function InteractiveCard() {
 function Band({ maxSpeed = 50, minSpeed = 10 }) {
   // Type refs
   const band = useRef<THREE.Mesh>(null);
-  const fixed = useRef<RapierRigidBody>(null);
-  const j1 = useRef<RapierRigidBody>(null);
-  const j2 = useRef<RapierRigidBody>(null);
-  const j3 = useRef<RapierRigidBody>(null);
-  const card = useRef<RapierRigidBody>(null);
+  const fixed = useRef<RapierRigidBody>(null!) as React.RefObject<RapierRigidBody>;
+  const j1 = useRef<RapierRigidBody>(null!) as React.RefObject<RapierRigidBody>;
+  const j2 = useRef<RapierRigidBody>(null!) as React.RefObject<RapierRigidBody>;
+  const j3 = useRef<RapierRigidBody>(null!) as React.RefObject<RapierRigidBody>;
+  const card = useRef<RapierRigidBody>(null!) as React.RefObject<RapierRigidBody>;
 
   const vec = new THREE.Vector3(),
     ang = new THREE.Vector3(),
     rot = new THREE.Vector3(),
     dir = new THREE.Vector3();
   const segmentProps = {
-    type: "dynamic",
+    type: "dynamic" as const,
     canSleep: true,
-    colliders: false,
+    colliders: undefined,
     angularDamping: 2,
     linearDamping: 2,
   };
@@ -172,11 +194,11 @@ Models.url) as any;
       curve.points[1].copy(lerpedMap.get(j2.current)!);
       curve.points[2].copy(lerpedMap.get(j1.current)!);
       curve.points[3].copy(fixed.current.translation());
-      band.current?.geometry.setPoints(curve.getPoints(32));
+      (band.current?.geometry as any).setPoints(curve.getPoints(32));
       // Tilt it back towards the screen
       ang.copy(card.current.angvel());
       rot.copy(card.current.rotation());
-      card.current.setAngvel({ x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z });
+      card.current.setAngvel({ x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z }, true);
     }
   });
 
@@ -200,7 +222,7 @@ Models.url) as any;
           position={[2, 0, 0]}
           ref={card}
           {...segmentProps}
-          type={dragged ? "kinematicPosition" : "dynamic"}
+          type={dragged ? "kinematicPosition" as const : "dynamic" as const}
         >
           <CuboidCollider args={[0.8, 1.125, 0.01]} />
           <group
@@ -209,11 +231,11 @@ Models.url) as any;
             onPointerOver={() => setHovered(true)}
             onPointerOut={() => setHovered(false)}
             onPointerUp={(e) => {
-              e.target.releasePointerCapture(e.pointerId);
+              (e.target as HTMLElement).releasePointerCapture(e.pointerId);
               setDragged(false);
             }}
             onPointerDown={(e) => {
-              e.target.setPointerCapture(e.pointerId);
+              (e.target as HTMLElement).setPointerCapture(e.pointerId);
               setDragged(
                 new THREE.Vector3()
                   .copy(e.point)
@@ -234,15 +256,17 @@ Models.url) as any;
             <mesh
               geometry={nodes?.clip?.geometry}
               material={materials.metal}
-              roughness={0.3}
             />
             <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
           </group>
         </RigidBody>
       </group>
       <mesh ref={band}>
-        <meshLineGeometry/>
+        {/** @ts-ignore */}
+        <meshLineGeometry as={undefined as any} />
+        {/** @ts-ignore */}
         <meshLineMaterial
+          as={undefined as any}
           color="white"
           depthTest={false}
           resolution={[width, height]}
